@@ -7,6 +7,7 @@ from random import randint
 
 class Server:
     connections: list[socket.socket] = []
+    cCon: list[tuple] = []
     peers: list[str] = []
 
     def __init__(self):
@@ -26,7 +27,6 @@ class Server:
 
             self.connections.append(connection)
             self.peers.append(address)
-
             print(f"{str(address[0])}:{str(address[1])} connected")
             self.sendPeers()
 
@@ -36,7 +36,8 @@ class Server:
 
             if data[0:1] == b'\x09':
                 print(f"RECEIVED PORT NUMBER: {data[1:]}")
-
+                self.cCon.append((addr[0], data[1:].decode()))
+                print(f"Connection Addresses: {self.cCon}")
             if data[0:1] == b'\x10':
                 print("Client Connected")
                 self.peers.remove(addr)
@@ -59,7 +60,6 @@ class Server:
                 clientSocket.close()
                 self.sendPeers()
                 break
-
 
     def sendPeers(self):
         peerString = ""
