@@ -45,7 +45,7 @@ class VPN:
         while True: # TODO SYNCRONIZE SENDING AMONST SERVERS
             time.sleep(10)
             num_connections = randint(0, 20)
-            message = f"{sock} has {num_connections} connections. Use port: {myport}".encode('utf-8')
+            message = b'\x12'+ f"{sock} has {num_connections} connections. Use port: {myport}".encode('utf-8')
             sock.send(message)
 
     def updatePeers(self, peerData):

@@ -41,9 +41,14 @@ class Server:
             if data[0:1] == b'\x10':
                 print("Client Connected")
                 self.peers.remove(addr)
-
                 print(self.peers)
-                
+
+            if data[0:1] == b'\x12':
+                numCon = int(data[150:152].decode())
+                #print(data[1:].decode())
+                #print(numCon)
+                #TODO HOW DO WE STORE CLIENT DATA 
+
                 for peer in self.peers:
                     clientSocket.send(str(peer).encode('utf-8'))
                 #TODO Send Appropriate VPN server information
