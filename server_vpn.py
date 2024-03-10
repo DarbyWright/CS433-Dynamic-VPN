@@ -44,8 +44,8 @@ class VPN:
         while True: # TODO SYNCRONIZE SENDING AMONST SERVERS
             time.sleep(10)
             num_connections = randint(0, 20)
-            message = b'\x12'+ f"{sock} has {num_connections} connections. Use port: {myport}".encode('utf-8')
-            sock.send(message)
+            message = f"{sock} has {num_connections} connections. Use port: {myport}".encode('utf-8')
+            sock.sendall(message)
 
     def updatePeers(self, peerData):
         p2p.peers = str(peerData, 'utf-8').split(",")[:-1]
@@ -86,8 +86,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
