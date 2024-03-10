@@ -14,7 +14,7 @@ class Client:
 
         while True:
             data = clientSocket.recv(1024)
-            print(f"Received {data.decode('utf-8')} Response From Server")
+            print(f"Received Response From Server: {data.decode('utf-8')}")
 
 
 def main():
