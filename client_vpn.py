@@ -10,7 +10,7 @@ class Client:
         clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         clientSocket.connect((address, 10000)) # connect to rendezvous
 
-        clientSocket.send(b'\x10') # send byte to distringuish between client and vpn server
+        clientSocket.send(b'\x10') # send byte to distinguish between client and vpn server
 
         while True:
             data = clientSocket.recv(1024)

@@ -26,6 +26,7 @@ class Server:
 
             self.connections.append(connection)
             self.peers.append(address)
+
             print(f"{str(address[0])}:{str(address[1])} connected")
             self.sendPeers()
 
@@ -58,6 +59,7 @@ class Server:
                 clientSocket.close()
                 self.sendPeers()
                 break
+
 
     def sendPeers(self):
         peerString = ""
