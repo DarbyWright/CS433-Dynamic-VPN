@@ -38,8 +38,7 @@ class VPN:
             if data[0:1] == b'\x11':  # Message was a peer update
                 self.updatePeers(data[1:])
             else:
-                # print(str(data, 'utf-8'))
-                print("Received Data")
+                print(f"Data Received: {str(data, 'utf-8')}")
 
     def sendMsg(self, lock: threading.Lock, sock: socket.socket):
         while True: # TODO SYNCRONIZE SENDING AMONST SERVERS
@@ -50,12 +49,12 @@ class VPN:
 
     def updatePeers(self, peerData):
         p2p.peers = str(peerData, 'utf-8').split(",")[:-1]
-        print(p2p.peers)
 
     def cliCon(self, lock: threading.Lock, serverSoc: socket.socket):
         serverSoc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         serverSoc.bind(("0.0.0.0", myport))
-        self.clientSocket.send(b'\x09' + str(myport).encode('utf-8'))
+        
+        self.clientSocket.sendall(b'\x09' + str(myport).encode('utf-8'))
 
         serverSoc.listen(1)
         print("Waiting for incoming Client connection")

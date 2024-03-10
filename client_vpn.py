@@ -10,10 +10,21 @@ class Client:
         clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         clientSocket.connect((address, 10000)) # connect to rendezvous
 
-        clientSocket.send(b'\x10') # send byte to distinguish between client and vpn server
+        current_vpn_list = []
+
+        clientSocket.sendall(b'\x10') # send byte to distinguish between client and vpn server
 
         while True:
             data = clientSocket.recv(1024)
+            # Receive String of VPN to connect to(random or logical 1st vpn)
+            # Disconnect from rendezvouz
+            # Connect to VPN
+
+            # Interface:
+                # Option1: Random every short time interval - simulating per request
+                
+                # Option2: Button that gets the VPN with least connections and connects to it
+
             print(f"Received Response From Server: {data.decode('utf-8')}")
 
 

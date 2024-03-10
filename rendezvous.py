@@ -8,6 +8,7 @@ from random import randint
 class Server:
     connections: list[socket.socket] = []
     cCon: list[tuple] = []
+    peers2: dict[tuple: list] = {}
     peers: list[str] = []
 
     def __init__(self):
@@ -26,53 +27,73 @@ class Server:
             cThread.start()
 
             self.connections.append(connection)
-            self.peers.append(address)
-            print(f"{str(address[0])}:{str(address[1])} connected")
+            # self.peers.append(f"{address[0]}:{address[1]}")
+            self.peers2[address] = []
+
+            print(f"{str(address)} connected")
             self.sendPeers()
 
-    def handler(self, lock: threading.Lock, clientSocket: socket.socket, addr: tuple):
+    def handler(self, lock: threading.Lock, clientSocket: socket.socket, local_addr: tuple):
         while True:
             data = clientSocket.recv(1024)
 
             if data[0:1] == b'\x09':
-                print(f"RECEIVED PORT NUMBER: {data[1:]}")
-                self.cCon.append((addr[0], data[1:].decode()))
-                print(f"Connection Addresses: {self.cCon}")
+                with lock:
+                    listening_port = data[1:].decode('utf-8')
+                    print(f"Server {local_addr} listening on port {listening_port}")
+                    remote_addr = clientSocket.getpeername()
+                    # self.peers.remove(f"{remote_addr[0]}:{remote_addr[1]}")
+                    # del self.peers2[remote_addr]
+                    # self.peers.append(f"{remote_addr[0]}:{remote_addr[1]}:{listening_port}")
+                    self.peers2[remote_addr].append(listening_port)
+
             if data[0:1] == b'\x10':
                 print("Client Connected")
-                self.peers.remove(addr)
-                print(self.peers)
+                with lock:
+                    del self.peers2[local_addr]
+                    self.connections.remove(clientSocket)
 
             if data[0:1] == b'\x12':
-                numCon = int(data[150:152].decode())
+                numCon = int(data[1:].decode())
+
+                remote_addr = clientSocket.getpeername()
+                # self.peers.remove(f"{remote_addr[0]}:{remote_addr[1]}:{listening_port}")
+                self.peers2[remote_addr].append(numCon)
+
                 #print(data[1:].decode())
                 #print(numCon)
                 #TODO HOW DO WE STORE CLIENT DATA 
 
-                for peer in self.peers:
+                for peer in self.peers2:
                     clientSocket.send(str(peer).encode('utf-8'))
+
                 #TODO Send Appropriate VPN server information
                 self.connections.remove(clientSocket)
                 break
 
+            
             for connection in self.connections:
-                connection.send(data)
+                connection.sendall(data)
 
             if not data:
-                print(f"{str(addr[0])}:{str(addr[1])} disconnected")
-                self.connections.remove(clientSocket)
-                self.peers.remove(addr)
-                clientSocket.close()
-                self.sendPeers()
-                break
+                with lock:
+                    print(f"{str(local_addr[0])}:{str(local_addr[1])} disconnected")
+                    self.connections.remove(clientSocket)
+                    self.peers.remove(f"{local_addr[0]}:{local_addr[1]}")
+                    clientSocket.close()
+                    self.sendPeers()
+                    break
 
     def sendPeers(self):
+        print("SEND")
         peerString = ""
         for peer in self.peers:
-            peerString += f"{peer},"#peerString + peer + ","
+            print("1111111")
+            print(peer)
+            peerString += f"{peer},"
         
         for connection in self.connections:
-            connection.send(b'\x11' + bytes(peerString, 'utf-8'))
+            connection.sendall(b'\x11' + bytes(peerString, 'utf-8'))
 
 
 def main():
