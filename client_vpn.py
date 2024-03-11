@@ -11,16 +11,15 @@ class Client:
         clientSocket.connect((address, 10000)) # connect to rendezvous
 
         clientSocket.sendall(b'\x10') # send byte to distinguish between client and vpn server
-        
+
         while True:
             data = clientSocket.recv(1024)
             if data[0:1] == b'\x11':
                 continue
             else:
-                message = data.decode('utf-8').strip('{').strip('}')
-                items = message.split(";")
-                for item in items:
-                    print(item)
+                message = eval(data.decode('utf-8'))
+                print(type(message))
+
                 window.textbox.insert(tk.END, f"Received Response From Server: {message}. Disconnecting from Rendezvous\n")
                 print(f"Received Response From Server: {message}. Disconnecting from Rendezvous")
                 clientSocket.close()
@@ -91,7 +90,7 @@ class App(tk.Tk):
             column=1,
             padx=10,
             pady=10)
-        
+
     def low_connections_pressed(self):
         client_thread = threading.Thread(target=main, args=(self,))
         client_thread.start()
