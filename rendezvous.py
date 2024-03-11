@@ -39,7 +39,7 @@ class Server:
 
             if data[0:1] == b'\x09': # VPN server listening thread
                 with lock:
-                    listening_port = data[1:].decode('utf-8')
+                    listening_port = int(data[1:].decode('utf-8'))
                     print(f"Server {local_addr} listening on port {listening_port}")
                     remote_addr = clientSocket.getpeername()
                     self.peers2[remote_addr].append(listening_port)
@@ -57,7 +57,7 @@ class Server:
                     self.connections.remove(clientSocket)
                     self.sendPeers()
                     self.updateBestpeer()
-                    clientSocket.sendall(self.peers2.encode('utf-8'))
+                    clientSocket.sendall(str(self.peers2).encode('utf-8'))
 
                     continue
 
@@ -80,6 +80,7 @@ class Server:
                         self.peers2[local_addr].append(numCon)
                     self.sendPeers()
                     self.updateBestpeer()
+
             if not data:
                 with lock:
                     print(f"{str(local_addr[0])}:{str(local_addr[1])} disconnected")

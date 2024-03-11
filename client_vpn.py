@@ -17,7 +17,10 @@ class Client:
             if data[0:1] == b'\x11':
                 continue
             else:
-                message = data.decode('utf-8')
+                message = data.decode('utf-8').strip('{').strip('}')
+                items = message.split(";")
+                for item in items:
+                    print(item)
                 window.textbox.insert(tk.END, f"Received Response From Server: {message}. Disconnecting from Rendezvous\n")
                 print(f"Received Response From Server: {message}. Disconnecting from Rendezvous")
                 clientSocket.close()
@@ -43,7 +46,7 @@ class Client:
                 # Option2: Button that gets the VPN with least connections and connects to it
 
 class Servers:
-    dict[tuple: list] = {}
+    neighbors: dict[tuple: list] = {}
 
 
 class App(tk.Tk):
@@ -72,7 +75,7 @@ class App(tk.Tk):
         self.low_connections_button = tk.Button(
             self,
             text="Connect to Server with Lowest Number of Connections",
-            command=self.low_connections)
+            command=self.low_connections_pressed)
         self.low_connections_button.grid(
             row=1,
             column=0,
