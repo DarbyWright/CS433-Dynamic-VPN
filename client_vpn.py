@@ -52,23 +52,46 @@ class App(tk.Tk):
         self.geometry(f"{600}x{500}")
 
         # Give weight to window container - allows for better window size adjustment
-        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure((0, 1), weight=1)
         self.grid_rowconfigure(0, weight=1)
 
         self.textbox = tk.Text(
             self,
             wrap="word")
-        self.textbox.pack()
+        self.textbox.grid(
+            row=0,
+            column=0,
+            columnspan=2,
+            padx=10,
+            pady=10,
+            sticky="news")
 
-        self.start_button = tk.Button(
+        self.low_connections_button = tk.Button(
             self,
-            text="Start",
-            command=self.start_pressed)
-        self.start_button.pack()
+            text="Connect to Server with Lowest Number of Connections",
+            command=self.low_connections)
+        self.low_connections_button.grid(
+            row=1,
+            column=0,
+            padx=10,
+            pady=10)
+
+        self.random_button = tk.Button(
+            self,
+            text="Connect to Random Server",
+            command=self.random_pressed)
+        self.random_button.grid(
+            row=1,
+            column=1,
+            padx=10,
+            pady=10)
         
-    def start_pressed(self):
+    def low_connections_pressed(self):
         client_thread = threading.Thread(target=main, args=(self,))
         client_thread.start()
+
+    def random_pressed(self):
+        print("Random Selected")
 
 
 def main(window: tk.Tk):
