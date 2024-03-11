@@ -41,18 +41,17 @@ class Server:
                     remote_addr = clientSocket.getpeername()
                     self.peers.remove(f"{remote_addr[0]}:{remote_addr[1]}")
                     self.peers.append(f"{remote_addr[0]}:{remote_addr[1]}:{listening_port}")
-
-            if data[0:1] == b'\x10':
+                    
+            elif data[0:1] == b'\x10':
                 print("Client Connected")
                 with lock:
                     self.peers.remove(f"{local_addr[0]}:{local_addr[1]}")
                     self.connections.remove(clientSocket)
+                    self.sendPeers()
 
                     #TODO Send Appropriate VPN server information
-                    for peer in self.peers:
-                        clientSocket.sendall(str(peer).encode('utf-8'))
 
-                    break
+                    clientSocket.sendall(self.peers[0].encode('utf-8'))
 
             for connection in self.connections:
                 connection.sendall(data)
@@ -60,12 +59,13 @@ class Server:
             if not data:
                 with lock:
                     print(f"{str(local_addr[0])}:{str(local_addr[1])} disconnected")
-                    self.connections.remove(clientSocket)
-                    self.peers.remove(f"{local_addr[0]}:{local_addr[1]}")
+                    if clientSocket in self.connections:
+                        self.connections.remove(clientSocket)
+                    if f"{local_addr[0]}:{local_addr[1]}" in self.peers:
+                        self.peers.remove(f"{local_addr[0]}:{local_addr[1]}")
                     clientSocket.close()
                     self.sendPeers()
                     break
-
 
     def sendPeers(self):
         peerString = ""

@@ -57,8 +57,9 @@ class VPN:
         self.clientSocket.sendall(b'\x09' + str(myport).encode('utf-8'))
 
         serverSoc.listen(1)
-        print("Waiting for incoming Client connection")
+        print("Waiting for incoming Client connection...")
         connection, address = serverSoc.accept()
+        print("...Client connection accepted")
         try:
             data = connection.recv(1024)
         except Exception as e:

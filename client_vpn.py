@@ -1,21 +1,35 @@
 import socket
 import threading
-import sys
-import time
 from random import randint
+import tkinter as tk
 
 
 class Client:
-    def __init__(self, address: str):
+    def __init__(self, address: str, window: tk.Tk):
         clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         clientSocket.connect((address, 10000)) # connect to rendezvous
 
-        current_vpn_list = []
-
         clientSocket.sendall(b'\x10') # send byte to distinguish between client and vpn server
-
+        
         while True:
             data = clientSocket.recv(1024)
+            if data[0:1] == b'\x11':
+                continue
+            else:
+                message = data.decode('utf-8')
+                window.textbox.insert("0.0", f"Received Response From Server: {message}. Disconnecting from Rendezvous\n")
+                # print(f"Received Response From Server: {message}. Disconnecting from Rendezvous")
+                clientSocket.close()
+
+                parts = message.split(':')
+                vpn_server_addr = (parts[0], int(parts[2]))
+                vpn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                vpn_socket.connect(vpn_server_addr)
+
+                window.textbox.insert("0.0", f"Connected to VPN Server: {vpn_server_addr}\n")
+                # print(f"Connected to VPN Server: {vpn_server_addr}")
+                break
+
             # Receive String of VPN to connect to(random or logical 1st vpn)
             # Disconnect from rendezvouz
             # Connect to VPN
@@ -25,11 +39,39 @@ class Client:
                 
                 # Option2: Button that gets the VPN with least connections and connects to it
 
-            print(f"Received Response From Server: {data.decode('utf-8')}")
+
+class App(tk.Tk):
+    def __init__(self):
+        super().__init__()
+
+        # Configure window
+        self.title("What's Up Dawg?")
+        self.geometry(f"{600}x{500}")
+
+        # Give weight to window container - allows for better window size adjustment
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+        self.textbox = tk.Text(
+            self,
+            wrap="word")
+        self.textbox.pack()
+
+        self.start_button = tk.Button(
+            self,
+            text="Start",
+            command=self.start_pressed)
+        self.start_button.pack()
+        
+    def start_pressed(self):
+        client_thread = threading.Thread(target=main, args=(self,))
+        client_thread.start()
 
 
-def main():
-    client = Client('127.0.0.1')
+def main(window: tk.Tk):
+    client = Client('127.0.0.1', window)
 
 if __name__ == "__main__":
-    main()
+    # main()
+    app = App()
+    app.mainloop()
