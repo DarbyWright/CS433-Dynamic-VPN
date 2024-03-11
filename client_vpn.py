@@ -42,6 +42,9 @@ class Client:
                 
                 # Option2: Button that gets the VPN with least connections and connects to it
 
+class Servers:
+    dict[tuple: list] = {}
+
 
 class App(tk.Tk):
     def __init__(self):

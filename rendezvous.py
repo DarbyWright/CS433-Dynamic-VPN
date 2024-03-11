@@ -9,6 +9,7 @@ class Server:
     connections: list[socket.socket] = []
     peers: list[str] = []
     peers2: dict[tuple: list] = {}
+    bestPeer: str = ""
 
     def __init__(self):
         serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -43,7 +44,6 @@ class Server:
                     remote_addr = clientSocket.getpeername()
                     self.peers2[remote_addr].append(listening_port)
                     self.sendPeers()
-
                     #self.peers.remove(f"{remote_addr[0]}:{remote_addr[1]}")
                     #self.peers.append(f"{remote_addr[0]}:{remote_addr[1]}:{listening_port}")
                     continue
@@ -56,12 +56,8 @@ class Server:
                     #self.peers.remove(f"{local_addr[0]}:{local_addr[1]}")
                     self.connections.remove(clientSocket)
                     self.sendPeers()
-
-                    #TODO REVISE TO SEND PEERS2
-
-
-
-                    clientSocket.sendall(self.peers[0].encode('utf-8'))
+                    self.updateBestpeer()
+                    clientSocket.sendall(self.peers2.encode('utf-8'))
 
                     continue
 
@@ -83,7 +79,7 @@ class Server:
                         self.peers2[local_addr].pop(-1)
                         self.peers2[local_addr].append(numCon)
                     self.sendPeers()
-
+                    self.updateBestpeer()
             if not data:
                 with lock:
                     print(f"{str(local_addr[0])}:{str(local_addr[1])} disconnected")
@@ -95,6 +91,7 @@ class Server:
                         del self.peers2[local_addr]
                     clientSocket.close()
                     self.sendPeers()
+                    self.updateBestpeer()
                     break
 
     def sendPeers(self):
@@ -113,6 +110,17 @@ class Server:
         #print("\n\n\npeer2String: " + peer2String)
         #print("peerString: "+ peerString)
 
+    def updateBestpeer(self):
+        best = 100000000
+        for peer in self.peers2:
+            if len(self.peers2[peer]) > 1:
+                if (((self.peers2[peer])[1]) < best):
+                    best = (self.peers2[peer])[1]
+                    self.bestPeer = ""
+                    self.bestPeer += str(peer)
+                    self.bestPeer += str(self.peers2[peer])
+
+        print(f"Best peer: {self.bestPeer}")
 
 def main():
     server = Server()
