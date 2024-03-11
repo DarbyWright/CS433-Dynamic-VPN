@@ -34,15 +34,16 @@ class Server:
         while True:
             data = clientSocket.recv(1024)
 
-            if data[0:1] == b'\x09':
+            if data[0:1] == b'\x09': # VPN server listening thread
                 with lock:
                     listening_port = data[1:].decode('utf-8')
                     print(f"Server {local_addr} listening on port {listening_port}")
                     remote_addr = clientSocket.getpeername()
                     self.peers.remove(f"{remote_addr[0]}:{remote_addr[1]}")
                     self.peers.append(f"{remote_addr[0]}:{remote_addr[1]}:{listening_port}")
+                    continue
                     
-            elif data[0:1] == b'\x10':
+            elif data[0:1] == b'\x10': # VPN client
                 print("Client Connected")
                 with lock:
                     self.peers.remove(f"{local_addr[0]}:{local_addr[1]}")
@@ -52,6 +53,7 @@ class Server:
                     #TODO Send Appropriate VPN server information
 
                     clientSocket.sendall(self.peers[0].encode('utf-8'))
+                    continue
 
             for connection in self.connections:
                 connection.sendall(data)

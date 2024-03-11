@@ -53,28 +53,36 @@ class VPN:
     def cliCon(self, lock: threading.Lock, serverSoc: socket.socket):
         serverSoc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         serverSoc.bind(("0.0.0.0", myport))
-        
-        self.clientSocket.sendall(b'\x09' + str(myport).encode('utf-8'))
-
         serverSoc.listen(1)
-        print("Waiting for incoming Client connection...")
-        connection, address = serverSoc.accept()
-        print("...Client connection accepted")
-        try:
-            data = connection.recv(1024)
-        except Exception as e:
-            print("The following error has occurred: ", e)
-        while data:
-            print(data.decode())
-            # do stuff with data
-            data = connection.recv(1024)
-            time.sleep(10)
-            pass
-            # respond and/or get more data
-        # TODO
-        # Need to communicate the port the client should connect to
-        # What should we do with client connection
-        print("Connection closed")
+
+        self.clientSocket.sendall(b'\x09' + str(myport).encode('utf-8'))
+        while True:
+            print("Waiting for incoming Client connection...")
+            connection, address = serverSoc.accept()
+            print(f"...Client connection: {address} accepted")
+            while True:
+                data = connection.recv(1024)
+                if not data:
+                    print("Client Disconnected")
+                    break
+                
+                print(f"Data From Client: {data.decode('utf-8')}")
+            # try:
+            #     data = connection.recv(1024)
+            #     print(f"Received: {data.decode('utf8')}")
+            # except Exception as e:
+            #     print("The following error has occurred: ", e)
+            # while data:
+            #     print(data.decode())
+            #     # do stuff with data
+            #     data = connection.recv(1024)
+            #     time.sleep(10)
+            #     pass
+                # respond and/or get more data
+            # TODO
+            # Need to communicate the port the client should connect to
+            # What should we do with client connection
+            print("Connection closed")
 
 
 class p2p:

@@ -1,5 +1,6 @@
 import socket
 import threading
+import time
 from random import randint
 import tkinter as tk
 
@@ -17,17 +18,19 @@ class Client:
                 continue
             else:
                 message = data.decode('utf-8')
-                window.textbox.insert("0.0", f"Received Response From Server: {message}. Disconnecting from Rendezvous\n")
-                # print(f"Received Response From Server: {message}. Disconnecting from Rendezvous")
+                window.textbox.insert(tk.END, f"Received Response From Server: {message}. Disconnecting from Rendezvous\n")
+                print(f"Received Response From Server: {message}. Disconnecting from Rendezvous")
                 clientSocket.close()
 
                 parts = message.split(':')
                 vpn_server_addr = (parts[0], int(parts[2]))
                 vpn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 vpn_socket.connect(vpn_server_addr)
-
-                window.textbox.insert("0.0", f"Connected to VPN Server: {vpn_server_addr}\n")
-                # print(f"Connected to VPN Server: {vpn_server_addr}")
+                window.textbox.insert(tk.END, f"Connected to VPN Server: {vpn_server_addr}\n")
+                print(f"Connected to VPN Server: {vpn_server_addr}")
+                while True:
+                    vpn_socket.sendall(bytes("VPN Server and Client are connected", 'utf-8'))
+                    time.sleep(2)
                 break
 
             # Receive String of VPN to connect to(random or logical 1st vpn)
@@ -45,7 +48,7 @@ class App(tk.Tk):
         super().__init__()
 
         # Configure window
-        self.title("What's Up Dawg?")
+        self.title("VPN Client")
         self.geometry(f"{600}x{500}")
 
         # Give weight to window container - allows for better window size adjustment
