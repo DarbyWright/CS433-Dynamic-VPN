@@ -44,18 +44,15 @@ class VPN:
         while True: # TODO SYNCRONIZE SENDING AMONST SERVERS
             time.sleep(10)
             num_connections = randint(0, 20)
-            message = f"{sock} has {num_connections} connections. Use port: {myport}".encode('utf-8')
+            message = b'\x12' + str(num_connections).encode('utf-8')
+            print(f"sending message: {sock} has {num_connections} connections. Use port: {myport}")
             sock.sendall(message)
 
     def updatePeers(self, peerData):
-        # list = str(peerData, 'utf-8').split(',')[:-1]
-        # list2 = list[1].split(':')
-        # length = len(list[0])
-        # addr = tuple((list[0][2:length-1], list(list2[1].lstrip())))
-
-        p2p.peers = str(peerData, 'utf-8').split(",")[:-1]
-        # print("\n\n\np2p:peers2")
-        # print(addr)
+        peerData = eval('{' + peerData.decode() + '}')
+        #p2p.peers = str(peerData, 'utf-8').split(",")[:-1]
+        p2p.peers2 = peerData
+        print(f"Peers updated: {p2p.peers2}")
 
     def cliCon(self, lock: threading.Lock, serverSoc: socket.socket):
         serverSoc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
