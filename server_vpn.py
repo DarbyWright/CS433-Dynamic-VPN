@@ -48,7 +48,14 @@ class VPN:
             sock.sendall(message)
 
     def updatePeers(self, peerData):
+        # list = str(peerData, 'utf-8').split(',')[:-1]
+        # list2 = list[1].split(':')
+        # length = len(list[0])
+        # addr = tuple((list[0][2:length-1], list(list2[1].lstrip())))
+
         p2p.peers = str(peerData, 'utf-8').split(",")[:-1]
+        # print("\n\n\np2p:peers2")
+        # print(addr)
 
     def cliCon(self, lock: threading.Lock, serverSoc: socket.socket):
         serverSoc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -87,6 +94,7 @@ class VPN:
 
 class p2p:
     peers = []
+    peers2 = {}
 
 
 def main():
