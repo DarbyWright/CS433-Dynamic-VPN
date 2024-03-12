@@ -50,9 +50,7 @@ class VPN:
 
     def updatePeers(self, peerData):
         peerData = eval('{' + peerData.decode() + '}')
-        #p2p.peers = str(peerData, 'utf-8').split(",")[:-1]
         p2p.peers2 = peerData
-        print(f"Peers updated: {p2p.peers2}")
 
     def cliCon(self, lock: threading.Lock, serverSoc: socket.socket):
         serverSoc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -64,6 +62,7 @@ class VPN:
             print("Waiting for incoming Client connection...")
             connection, address = serverSoc.accept()
             print(f"...Client connection: {address} accepted")
+            
             while True:
                 data = connection.recv(1024)
                 if not data:
@@ -71,21 +70,7 @@ class VPN:
                     break
                 
                 print(f"Data From Client: {data.decode('utf-8')}")
-            # try:
-            #     data = connection.recv(1024)
-            #     print(f"Received: {data.decode('utf8')}")
-            # except Exception as e:
-            #     print("The following error has occurred: ", e)
-            # while data:
-            #     print(data.decode())
-            #     # do stuff with data
-            #     data = connection.recv(1024)
-            #     time.sleep(10)
-            #     pass
-                # respond and/or get more data
-            # TODO
-            # Need to communicate the port the client should connect to
-            # What should we do with client connection
+
             print("Connection closed")
 
 

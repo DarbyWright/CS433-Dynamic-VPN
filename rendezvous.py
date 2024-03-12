@@ -27,7 +27,6 @@ class Server:
             cThread.start()
 
             self.connections.append(connection)
-            # self.peers.append(f"{address[0]}:{address[1]}")
             self.peers2[address] = []
 
             print(f"{str(address[0])}:{str(address[1])} connected")
@@ -44,31 +43,17 @@ class Server:
                     remote_addr = clientSocket.getpeername()
                     self.peers2[remote_addr].append(listening_port)
                     self.sendPeers()
-                    #self.peers.remove(f"{remote_addr[0]}:{remote_addr[1]}")
-                    #self.peers.append(f"{remote_addr[0]}:{remote_addr[1]}:{listening_port}")
                     continue
                     
             elif data[0:1] == b'\x10': # VPN client
                 print("Client Connected")
                 with lock:
                     del self.peers2[local_addr]
-
-                    #self.peers.remove(f"{local_addr[0]}:{local_addr[1]}")
                     self.connections.remove(clientSocket)
                     self.sendPeers()
                     self.updateBestpeer()
                     clientSocket.sendall(str(self.peers2).encode('utf-8'))
-
                     continue
-
-                    #for peer in self.peers:
-                    #    clientSocket.sendall(str(peer).encode('utf-8'))
-                    for peer in self.peers2:
-                        clientSocket.sendall(str(peer).encode('utf-8'))
-                    #break
-
-                    for connection in self.connections:
-                        connection.sendall(data)
 
             elif data[0:1] == b'\x12':
                 with lock:
@@ -96,20 +81,12 @@ class Server:
                     break
 
     def sendPeers(self):
-        #print(self.peers2)
-        #print(' peers\n\n')
-        #peerString = ""
         peer2String = ""
-        #for peer in self.peers:
-        #   peerString += f"{peer},"
         for peer1 in self.peers2:
             peer2String += f"{peer1}: {self.peers2[peer1]}, "
 
         for connection in self.connections:
-            # connection.sendall(b'\x11' + bytes(peerString, 'utf-8'))
             connection.sendall(b'\x11' + bytes(peer2String, 'utf-8'))
-        #print("\n\n\npeer2String: " + peer2String)
-        #print("peerString: "+ peerString)
 
     def updateBestpeer(self):
         best = 100000000

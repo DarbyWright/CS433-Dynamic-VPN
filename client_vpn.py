@@ -6,49 +6,61 @@ import tkinter as tk
 
 
 class Client:
-    def __init__(self, address: str, window: tk.Tk):
-        clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        clientSocket.connect((address, 10000)) # connect to rendezvous
+    def __init__(self, address: str, window: tk.Tk, option: int):
+        self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.clientSocket.connect((address, 10000)) # connect to rendezvous
 
-        clientSocket.sendall(b'\x10') # send byte to distinguish between client and vpn server
+        self.clientSocket.sendall(b'\x10') # send byte to distinguish between client and vpn server
 
-        while True:
-            data = clientSocket.recv(1024)
-            if data[0:1] == b'\x11':
-                continue
-            else:
-                message = eval(data.decode('utf-8'))
-                print(type(message))
+        data = self.clientSocket.recv(1024)
+        if data[0:1] == b'\x11':
+            data = self.clientSocket.recv(1024)
 
-                window.textbox.insert(tk.END, f"Received Response From Server: {message}. Disconnecting from Rendezvous\n")
-                print(f"Received Response From Server: {message}. Disconnecting from Rendezvous")
-                clientSocket.close()
+        message: dict = eval(data.decode('utf-8'))
+        window.textbox.insert(tk.END, f"Received Response From Server: {message}. Disconnecting from Rendezvous\n")
+        print(f"Received Response From Server: {message}. Disconnecting from Rendezvous")
+        self.clientSocket.close()
 
-                parts = message.split(':')
-                vpn_server_addr = (parts[0], int(parts[2]))
+        if option == 0:
+            while True:
+                # data = self.clientSocket.recv(1024)
+                # if data[0:1] == b'\x11':
+                #     continue
+                # else:
+                #     message: dict = eval(data.decode('utf-8'))
+
+                #     window.textbox.insert(tk.END, f"Received Response From Server: {message}. Disconnecting from Rendezvous\n")
+                #     print(f"Received Response From Server: {message}. Disconnecting from Rendezvous")
+                #     self.clientSocket.close()
+
+                best_option = None
+                for key, value in message.items():
+                    if not best_option:
+                        best_option = (key, value)
+                    elif best_option[1][1] > value[1]:
+                        best_option = (key, value)
+                print(f"Best VPN Server Available: {best_option}")
+                vpn_server_addr = (best_option[0][0], best_option[1][0])
                 vpn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 vpn_socket.connect(vpn_server_addr)
-                window.textbox.insert(tk.END, f"Connected to VPN Server: {vpn_server_addr}\n")
-                print(f"Connected to VPN Server: {vpn_server_addr}")
+                window.textbox.insert(tk.END, f"Connected to VPN Server: {best_option}\n")
+                print(f"Connected to VPN Server: {best_option}")
+
                 while True:
                     vpn_socket.sendall(bytes("VPN Server and Client are connected", 'utf-8'))
                     time.sleep(2)
-                break
-
-            # Receive String of VPN to connect to(random or logical 1st vpn)
-            # Disconnect from rendezvouz
-            # Connect to VPN
-
-            # Interface:
-                # Option1: Random every short time interval - simulating per request
-                
-                # Option2: Button that gets the VPN with least connections and connects to it
+        if option == 1:
+            pass#TODO
+    
+    def handler(self):
+        return
 
 class Servers:
     neighbors: dict[tuple: list] = {}
 
 
 class App(tk.Tk):
+    client_thread = None
     def __init__(self):
         super().__init__()
 
@@ -92,15 +104,16 @@ class App(tk.Tk):
             pady=10)
 
     def low_connections_pressed(self):
-        client_thread = threading.Thread(target=main, args=(self,))
+        client_thread = threading.Thread(target=main, args=(self, 0))
         client_thread.start()
 
     def random_pressed(self):
-        print("Random Selected")
+        client_thread = threading.Thread(target=main, args=(self, 1))
+        client_thread.start()
 
 
-def main(window: tk.Tk):
-    client = Client('127.0.0.1', window)
+def main(window: tk.Tk, option: int):
+    client = Client('127.0.0.1', window, option)
 
 if __name__ == "__main__":
     # main()
