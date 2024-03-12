@@ -28,7 +28,7 @@ class VPN:
 
         cThread = threading.Thread(target=self.cliCon, args=(lock, serverSoc,))
         cThread.daemon = True
-        cThread.start()  # daemon thread here?
+        cThread.start()
 
         while True:
             data = self.clientSocket.recv(1024)
@@ -42,10 +42,10 @@ class VPN:
 
     def sendMsg(self, lock: threading.Lock, sock: socket.socket):
         while True: # TODO SYNCRONIZE SENDING AMONST SERVERS
-            time.sleep(10)
+            time.sleep(5)
             num_connections = randint(0, 20)
             message = b'\x12' + str(num_connections).encode('utf-8')
-            print(f"sending message: {sock} has {num_connections} connections. Use port: {myport}")
+            # print(f"sending message: {sock} has {num_connections} connections. Use port: {myport}")
             sock.sendall(message)
 
     def updatePeers(self, peerData):
@@ -69,9 +69,8 @@ class VPN:
                     print("Client Disconnected")
                     break
                 
-                print(f"Data From Client: {data.decode('utf-8')}")
-
-            print("Connection closed")
+                print("Client Requesting Updated Peers")
+                connection.sendall(str(p2p.peers2).encode('utf-8'))
 
 
 class p2p:

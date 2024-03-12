@@ -1,59 +1,89 @@
 import socket
 import threading
 import time
-from random import randint
+import random
 import tkinter as tk
 
 
 class Client:
     def __init__(self, address: str, window: tk.Tk, option: int):
+        self.servers_list: dict = {}
+        self.current_best: tuple = None
+
         self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.clientSocket.connect((address, 10000)) # connect to rendezvous
-
         self.clientSocket.sendall(b'\x10') # send byte to distinguish between client and vpn server
 
         data = self.clientSocket.recv(1024)
+        # If the first recv is a peer update, wait for the second recv
         if data[0:1] == b'\x11':
             data = self.clientSocket.recv(1024)
 
-        message: dict = eval(data.decode('utf-8'))
-        window.textbox.insert(tk.END, f"Received Response From Server: {message}. Disconnecting from Rendezvous\n")
-        print(f"Received Response From Server: {message}. Disconnecting from Rendezvous")
+        self.servers_list = eval(data.decode('utf-8'))
+        self.current_best = self.determine_best_server()
+        print(f"Received Response From Server: {self.servers_list}. Disconnecting from Rendezvous")
+        window.textbox.insert(tk.END, f"Received Response From Server: {self.servers_list}. Disconnecting from Rendezvous.\n")
         self.clientSocket.close()
 
-        if option == 0:
-            while True:
-                # data = self.clientSocket.recv(1024)
-                # if data[0:1] == b'\x11':
-                #     continue
-                # else:
-                #     message: dict = eval(data.decode('utf-8'))
+        
+        while True:
+            print(f"Best VPN Server Available: {self.current_best}")
+            vpn_server_addr = (self.current_best[0][0], self.current_best[1][0])
+            vpn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            vpn_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            vpn_socket.connect(vpn_server_addr)
+            print(f"Connected to VPN Server: {self.current_best}")
+            window.textbox.insert(tk.END, f"Connected to VPN Server: {self.current_best}\n")
 
-                #     window.textbox.insert(tk.END, f"Received Response From Server: {message}. Disconnecting from Rendezvous\n")
-                #     print(f"Received Response From Server: {message}. Disconnecting from Rendezvous")
-                #     self.clientSocket.close()
-
-                best_option = None
-                for key, value in message.items():
-                    if not best_option:
-                        best_option = (key, value)
-                    elif best_option[1][1] > value[1]:
-                        best_option = (key, value)
-                print(f"Best VPN Server Available: {best_option}")
-                vpn_server_addr = (best_option[0][0], best_option[1][0])
-                vpn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                vpn_socket.connect(vpn_server_addr)
-                window.textbox.insert(tk.END, f"Connected to VPN Server: {best_option}\n")
-                print(f"Connected to VPN Server: {best_option}")
-
+            if option == 0:
+                print("OPTION 0")
                 while True:
-                    vpn_socket.sendall(bytes("VPN Server and Client are connected", 'utf-8'))
-                    time.sleep(2)
-        if option == 1:
-            pass#TODO
+                    time.sleep(10)
+                    vpn_socket.sendall(b'\x10')
+                    data = vpn_socket.recv(1024)
+                    self.servers_list = eval(data.decode('utf-8'))
+                    self.current_best = self.determine_best_server()
+                    best_server_addr = (self.current_best[0][0], self.current_best[1][0])
+                    if best_server_addr == vpn_socket.getpeername():
+                        print("Best Server is the Current Server...")
+                        window.textbox.insert(tk.END, f"Best Server is the Current Server...\n")
+                    else:
+                        print("Changing Servers...")
+                        window.textbox.insert(tk.END, f"Changing Servers...\n")
+                        break
+
+            if option == 1:
+                print("OPTION 1")
+                while True:
+                    time.sleep(10)
+                    vpn_socket.sendall(b'\x10')
+                    data = vpn_socket.recv(1024)
+                    self.servers_list = eval(data.decode('utf-8'))
+                    key, value = random.choice(list(self.servers_list.items()))
+                    self.current_best = (key, value)
+                    best_server_addr = (key[0], value[0])
+
+                    if best_server_addr == vpn_socket.getpeername():
+                        print("Randomly Selected the Current Server...")
+                        window.textbox.insert(tk.END, f"Randomly Selected the Current Server\n")
+                    else:
+                        print("Randomly Selected a New Server...")
+                        window.textbox.insert(tk.END, f"Randomly Selected a New Server\n")
+                        break
+
     
     def handler(self):
         return
+    
+    def determine_best_server(self) -> tuple[str, list]:
+        best_option = None
+        for key, value in self.servers_list.items():
+            if not best_option:
+                best_option = (key, value)
+            elif best_option[1][1] > value[1]:
+                best_option = (key, value)
+        return best_option
+
 
 class Servers:
     neighbors: dict[tuple: list] = {}

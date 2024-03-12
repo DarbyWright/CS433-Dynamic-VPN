@@ -98,7 +98,7 @@ class Server:
                     self.bestPeer += str(peer)
                     self.bestPeer += str(self.peers2[peer])
 
-        print(f"Best peer: {self.bestPeer}")
+        # print(f"Best peer: {self.bestPeer}")
 
 def main():
     server = Server()
