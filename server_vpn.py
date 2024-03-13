@@ -5,14 +5,15 @@ import time
 import json
 from random import randint
 
-f = open("var.json", "r")  # Get port to listen on and update var for next server instance
-port = json.load(f)
-myport = port["port"]
-port["port"] += 1
-f = open("var.json", "w")
-json.dump(port, f)
-f.close()
-
+# f = open("var.json", "r")  # Get port to listen on and update var for next server instance
+# port = json.load(f)
+# myport = port["port"]
+# port["port"] += 1
+# f = open("var.json", "w")
+# json.dump(port, f)
+# f.close()
+myport = -1
+portRecieved = threading.Event()
 
 class VPN:
     def __init__(self, address: str):
@@ -37,6 +38,12 @@ class VPN:
 
             if data[0:1] == b'\x11':  # Message was a peer update
                 self.updatePeers(data[1:])
+            if data[0:1] == b'\x12':
+                #print(f"data: {data}")
+                port = int(data[1:].decode())
+                global myport
+                myport = port
+                portRecieved.set()
             else:
                 print(f"Data Received: {str(data, 'utf-8')}")
 
@@ -54,10 +61,23 @@ class VPN:
 
     def cliCon(self, lock: threading.Lock, serverSoc: socket.socket):
         serverSoc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        serverSoc.bind(("0.0.0.0", myport))
-        serverSoc.listen(1)
+        # need to get listening port
+        # serverSoc.bind(("0.0.0.0", myport))
+        #serverSoc.listen(1)
 
-        self.clientSocket.sendall(b'\x09' + str(myport).encode('utf-8'))
+        #self.clientSocket.sendall(b'\x09' + str(myport).encode('utf-8'))
+        self.clientSocket.sendall(b'\x09') # request listening port
+        #time.sleep(1)
+
+        print(f"This is the port before waiting: {myport}")
+        portRecieved.wait(timeout=10)
+        print(f"This is the port after waiting: {myport}")
+        try:
+            serverSoc.bind(("0.0.0.0", myport))
+        except:
+            print("Server failed to get a listening port")
+            exit() # need cleanup?
+        serverSoc.listen(1)
         while True:
             print("Waiting for incoming Client connection...")
             connection, address = serverSoc.accept()
