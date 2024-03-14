@@ -1,5 +1,6 @@
 import socket
 import threading
+import json
 import sys
 import time
 from random import randint
@@ -38,15 +39,28 @@ class Server:
 
             if data[0:1] == b'\x09': # VPN server listening thread
                 with lock:
-                    listening_port = int(data[1:].decode('utf-8'))
-                    print(f"VPN Server ({local_addr[0]}, {listening_port} is accepting connections")
+                    f = open("var.json", "r")  # Get port to listen on and update var for next server instance
+                    port = json.load(f)
+                    myport = port["port"]
+                    port["port"] += 1
+                    f = open("var.json", "w")
+                    json.dump(port, f)
+                    f.close()
+                    #print (f"MyPort: {myport}")
+                    try:
+                        clientSocket.sendall(b'\x12' + str(myport).encode())
+                    except:
+                        print("FAIL")
+                    #listening_port = int(data[1:].decode('utf-8'))
+                    #print(f"Server {local_addr} listening on port {listening_port}")
+                    print(f"Server {local_addr} listening on port {myport}")
                     remote_addr = clientSocket.getpeername()
-                    self.peers2[remote_addr].append(listening_port)
+                    self.peers2[remote_addr].append(myport)
                     self.sendPeers()
                     continue
                     
             elif data[0:1] == b'\x10': # VPN client
-                print("Client Connected")
+                # print("Client Connected")
                 with lock:
                     del self.peers2[local_addr]
                     self.connections.remove(clientSocket)
