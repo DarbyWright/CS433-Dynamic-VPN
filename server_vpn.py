@@ -1,8 +1,6 @@
 import socket
 import threading
-import sys
 import time
-import json
 from random import randint
 
 
