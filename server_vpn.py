@@ -16,7 +16,7 @@ f.close()
 
 class VPN:
     def __init__(self, address: str):
-        print("Starting the 'VPN' Server - Connecting to Rendezvous")
+        print("'VPN Server' Started")
         self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.clientSocket.connect((address, 10000))
         serverSoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -38,7 +38,8 @@ class VPN:
             if data[0:1] == b'\x11':  # Message was a peer update
                 self.updatePeers(data[1:])
             else:
-                print(f"Data Received: {str(data, 'utf-8')}")
+                continue
+                # print(f"Data Received: {str(data, 'utf-8')}")
 
     def sendMsg(self, lock: threading.Lock, sock: socket.socket):
         while True: # TODO SYNCRONIZE SENDING AMONST SERVERS
@@ -61,7 +62,7 @@ class VPN:
         while True:
             print("Waiting for incoming Client connection...")
             connection, address = serverSoc.accept()
-            print(f"...Client connection: {address} accepted")
+            print(f"...Accepted connection from {address}")
             
             while True:
                 data = connection.recv(1024)
@@ -69,7 +70,7 @@ class VPN:
                     print("Client Disconnected")
                     break
                 
-                print("Client Requesting Updated Peers")
+                print("Client requesting peer update")
                 connection.sendall(str(p2p.peers2).encode('utf-8'))
 
 

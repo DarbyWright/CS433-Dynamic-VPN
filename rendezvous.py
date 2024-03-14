@@ -16,7 +16,7 @@ class Server:
         serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         serverSocket.bind(("0.0.0.0", 10000))
         serverSocket.listen(1)
-        print("Server Running...")
+        print("Rendezvous Server Running...")
 
         while True:
             connection, address = serverSocket.accept()
@@ -29,7 +29,7 @@ class Server:
             self.connections.append(connection)
             self.peers2[address] = []
 
-            print(f"{str(address[0])}:{str(address[1])} connected")
+            # print(f"{str(address[0])}:{str(address[1])} connected")
             #self.sendPeers() # moved to after listening_port added ~ line 45
 
     def handler(self, lock: threading.Lock, clientSocket: socket.socket, local_addr: tuple):
@@ -39,7 +39,7 @@ class Server:
             if data[0:1] == b'\x09': # VPN server listening thread
                 with lock:
                     listening_port = int(data[1:].decode('utf-8'))
-                    print(f"Server {local_addr} listening on port {listening_port}")
+                    print(f"VPN Server ({local_addr[0]}, {listening_port} is accepting connections")
                     remote_addr = clientSocket.getpeername()
                     self.peers2[remote_addr].append(listening_port)
                     self.sendPeers()
@@ -68,7 +68,7 @@ class Server:
 
             if not data:
                 with lock:
-                    print(f"{str(local_addr[0])}:{str(local_addr[1])} disconnected")
+                    # print(f"{str(local_addr[0])}:{str(local_addr[1])} disconnected")
                     if clientSocket in self.connections:
                         self.connections.remove(clientSocket)
                     # if f"{local_addr[0]}:{local_addr[1]}" in self.peers:

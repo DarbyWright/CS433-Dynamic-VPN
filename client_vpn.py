@@ -7,11 +7,16 @@ import tkinter as tk
 
 class Client:
     def __init__(self, address: str, window: tk.Tk, option: int):
+        if option == 0:
+            window.textbox.insert(tk.END, f"Selected Low Connection Mode - Updates every 10 seconds\n")
+        elif option == 1:
+            window.textbox.insert(tk.END, f"Selected Random Mode - Updates every 10 seconds\n")
         self.servers_list: dict = {}
         self.current_best: tuple = None
 
         self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.clientSocket.connect((address, 10000)) # connect to rendezvous
+        window.textbox.insert(tk.END, f"Bootstrap - Connected to Rendezvous Server\n")
         self.clientSocket.sendall(b'\x10') # send byte to distinguish between client and vpn server
 
         data = self.clientSocket.recv(1024)
@@ -21,22 +26,17 @@ class Client:
 
         self.servers_list = eval(data.decode('utf-8'))
         self.current_best = self.determine_best_server()
-        print(f"Received Response From Server: {self.servers_list}. Disconnecting from Rendezvous")
-        window.textbox.insert(tk.END, f"Received Response From Server: {self.servers_list}. Disconnecting from Rendezvous.\n")
+        window.textbox.insert(tk.END, f"Bootstrap - Received Initial Peer List. Disconnecting From Rendezvous\n")
         self.clientSocket.close()
-
         
         while True:
-            print(f"Best VPN Server Available: {self.current_best}")
             vpn_server_addr = (self.current_best[0][0], self.current_best[1][0])
             vpn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             vpn_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             vpn_socket.connect(vpn_server_addr)
-            print(f"Connected to VPN Server: {self.current_best}")
-            window.textbox.insert(tk.END, f"Connected to VPN Server: {self.current_best}\n")
+            window.textbox.insert(tk.END, f"Connected to VPN Server: {vpn_server_addr}\n")
 
             if option == 0:
-                print("OPTION 0")
                 while True:
                     time.sleep(10)
                     vpn_socket.sendall(b'\x10')
@@ -53,27 +53,23 @@ class Client:
                         break
 
             if option == 1:
-                print("OPTION 1")
                 while True:
-                    time.sleep(10)
+                    time.sleep(10) # request updated servers list every 10 seconds
                     vpn_socket.sendall(b'\x10')
                     data = vpn_socket.recv(1024)
                     self.servers_list = eval(data.decode('utf-8'))
-                    key, value = random.choice(list(self.servers_list.items()))
-                    self.current_best = (key, value)
-                    best_server_addr = (key[0], value[0])
 
-                    if best_server_addr == vpn_socket.getpeername():
-                        print("Randomly Selected the Current Server...")
-                        window.textbox.insert(tk.END, f"Randomly Selected the Current Server\n")
-                    else:
-                        print("Randomly Selected a New Server...")
-                        window.textbox.insert(tk.END, f"Randomly Selected a New Server\n")
-                        break
+                    while True:
+                        key, value = random.choice(list(self.servers_list.items()))
+                        self.current_best = (key, value)
+                        best_server_addr = (key[0], value[0])
 
-    
-    def handler(self):
-        return
+                        if best_server_addr != vpn_socket.getpeername():
+                            # print("Randomly Selected a New Server...")
+                            window.textbox.insert(tk.END, f"Selecting a Random VPN Server...\n")
+                            break
+                    break
+
     
     def determine_best_server(self) -> tuple[str, list]:
         best_option = None
@@ -90,9 +86,10 @@ class Servers:
 
 
 class App(tk.Tk):
-    client_thread = None
     def __init__(self):
         super().__init__()
+        global HALT
+        self.client_thread = None
 
         # Configure window
         self.title("VPN Client")
@@ -115,7 +112,7 @@ class App(tk.Tk):
 
         self.low_connections_button = tk.Button(
             self,
-            text="Connect to Server with Lowest Number of Connections",
+            text="Low Connections",
             command=self.low_connections_pressed)
         self.low_connections_button.grid(
             row=1,
@@ -125,25 +122,42 @@ class App(tk.Tk):
 
         self.random_button = tk.Button(
             self,
-            text="Connect to Random Server",
+            text="Random Server",
             command=self.random_pressed)
         self.random_button.grid(
             row=1,
             column=1,
             padx=10,
             pady=10)
+        
+        # self.reset_button = tk.Button(
+        #     self,
+        #     text="Reset",
+        #     command=self.reset_pressed)
+        # self.reset_button.grid(
+        #     row=1,
+        #     column=2,
+        #     padx=10,
+        #     pady=10)
 
     def low_connections_pressed(self):
-        client_thread = threading.Thread(target=main, args=(self, 0))
-        client_thread.start()
+        self.client_thread = threading.Thread(target=low_conn_client, args=(self,))
+        self.client_thread.start()
 
     def random_pressed(self):
-        client_thread = threading.Thread(target=main, args=(self, 1))
+        client_thread = threading.Thread(target=random_client, args=(self,))
         client_thread.start()
 
+    def reset_pressed(self):
+        print("Reset Pressed")
+        HALT = True
 
-def main(window: tk.Tk, option: int):
-    client = Client('127.0.0.1', window, option)
+
+def low_conn_client(window: tk.Tk):
+    client = Client('127.0.0.1', window, 0)
+
+def random_client(window: tk.Tk):
+    client = Client('127.0.0.1', window, 1)
 
 if __name__ == "__main__":
     # main()
