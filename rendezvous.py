@@ -8,34 +8,31 @@ from random import randint
 
 class Server:
     connections: list[socket.socket] = []
-    peers: list[str] = []
-    peers2: dict[tuple: list] = {}
-    bestPeer: str = ""
+    peers: dict[tuple: list] = {}
+    best_peer: str = ""
 
     def __init__(self):
-        serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        serverSocket.bind(("0.0.0.0", 10000))
-        serverSocket.listen(1)
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server_socket.bind(("0.0.0.0", 10000))
+        server_socket.listen(1)
         print("Rendezvous Server Running...")
 
         while True:
-            connection, address = serverSocket.accept()
+            connection, address = server_socket.accept()
 
             lock = threading.Lock()
-            cThread = threading.Thread(target=self.handler, args=(lock, connection, address))
-            cThread.daemon = True
-            cThread.start()
+            handler_thread = threading.Thread(target=self.handler, args=(lock, connection, address))
+            handler_thread.daemon = True
+            handler_thread.start()
 
             self.connections.append(connection)
-            self.peers2[address] = []
+            self.peers[address] = []
 
-            # print(f"{str(address[0])}:{str(address[1])} connected")
-            #self.sendPeers() # moved to after listening_port added ~ line 45
 
-    def handler(self, lock: threading.Lock, clientSocket: socket.socket, local_addr: tuple):
+    def handler(self, lock: threading.Lock, client_socket: socket.socket, local_addr: tuple):
         while True:
-            data = clientSocket.recv(1024)
+            data = client_socket.recv(1024)
 
             if data[0:1] == b'\x09': # VPN server listening thread
                 with lock:
@@ -46,73 +43,70 @@ class Server:
                     f = open("var.json", "w")
                     json.dump(port, f)
                     f.close()
-                    #print (f"MyPort: {myport}")
+
                     try:
-                        clientSocket.sendall(b'\x12' + str(myport).encode())
+                        client_socket.sendall(b'\x12' + str(myport).encode())
                     except:
                         print("FAIL")
-                    #listening_port = int(data[1:].decode('utf-8'))
-                    #print(f"Server {local_addr} listening on port {listening_port}")
+
                     print(f"Server {local_addr} listening on port {myport}")
-                    remote_addr = clientSocket.getpeername()
-                    self.peers2[remote_addr].append(myport)
-                    self.sendPeers()
+                    remote_addr = client_socket.getpeername()
+                    self.peers[remote_addr].append(myport)
+                    self.send_peers()
                     continue
                     
             elif data[0:1] == b'\x10': # VPN client
                 # print("Client Connected")
                 with lock:
-                    del self.peers2[local_addr]
-                    self.connections.remove(clientSocket)
-                    self.sendPeers()
-                    self.updateBestpeer()
-                    clientSocket.sendall(str(self.peers2).encode('utf-8'))
+                    del self.peers[local_addr]
+                    self.connections.remove(client_socket)
+                    self.send_peers()
+                    self.update_best_peer()
+                    client_socket.sendall(str(self.peers).encode('utf-8'))
                     continue
 
             elif data[0:1] == b'\x12':
                 with lock:
-                    numCon = int(data[1:].decode().strip())
-                    if len(self.peers2[local_addr])==1:
-                        self.peers2[local_addr].append(numCon)
+                    num_connections = int(data[1:].decode().strip())
+                    if len(self.peers[local_addr])==1:
+                        self.peers[local_addr].append(num_connections)
                     else:
-                        self.peers2[local_addr].pop(-1)
-                        self.peers2[local_addr].append(numCon)
-                    self.sendPeers()
-                    self.updateBestpeer()
+                        self.peers[local_addr].pop(-1)
+                        self.peers[local_addr].append(num_connections)
+                    self.send_peers()
+                    self.update_best_peer()
 
             if not data:
                 with lock:
-                    # print(f"{str(local_addr[0])}:{str(local_addr[1])} disconnected")
-                    if clientSocket in self.connections:
-                        self.connections.remove(clientSocket)
-                    # if f"{local_addr[0]}:{local_addr[1]}" in self.peers:
-                    #   self.peers.remove(f"{local_addr[0]}:{local_addr[1]}")
-                    if (local_addr[0], local_addr[1]) in self.peers2:
-                        del self.peers2[local_addr]
-                    clientSocket.close()
-                    self.sendPeers()
-                    self.updateBestpeer()
+                    if client_socket in self.connections:
+                        self.connections.remove(client_socket)
+
+                    if (local_addr[0], local_addr[1]) in self.peers:
+                        del self.peers[local_addr]
+                        
+                    client_socket.close()
+                    self.send_peers()
+                    self.update_best_peer()
                     break
 
-    def sendPeers(self):
-        peer2String = ""
-        for peer1 in self.peers2:
-            peer2String += f"{peer1}: {self.peers2[peer1]}, "
+    def send_peers(self):
+        peer_string = ""
+        for peer1 in self.peers:
+            peer_string += f"{peer1}: {self.peers[peer1]}, "
 
         for connection in self.connections:
-            connection.sendall(b'\x11' + bytes(peer2String, 'utf-8'))
+            connection.sendall(b'\x11' + bytes(peer_string, 'utf-8'))
 
-    def updateBestpeer(self):
-        best = 100000000
-        for peer in self.peers2:
-            if len(self.peers2[peer]) > 1:
-                if (((self.peers2[peer])[1]) < best):
-                    best = (self.peers2[peer])[1]
-                    self.bestPeer = ""
-                    self.bestPeer += str(peer)
-                    self.bestPeer += str(self.peers2[peer])
+    def update_best_peer(self):
+        best_option = None
+        for key, value in self.peers.items():
+            if len(value) < 2:
+                continue
 
-        # print(f"Best peer: {self.bestPeer}")
+            if not best_option or value[1] < best_option:
+                best_option = value[1]
+                self.best_peer += f"{key}{value}"
+
 
 def main():
     server = Server()

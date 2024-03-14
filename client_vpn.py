@@ -6,29 +6,29 @@ import tkinter as tk
 
 
 class Client:
-    def __init__(self, address: str, window: tk.Tk, option: int, stime: int):
+    def __init__(self, address: str, window: tk.Tk, option: int, time_interval: int):
         if option == 0:
             window.textbox.insert(tk.END, f"Selected Low Connection Mode - Updates every 10 seconds\n")
         elif option == 1:
             window.textbox.insert(tk.END, f"Selected Random Mode - Updates every 10 seconds\n")
+
+        self.time_interval = time_interval
         self.servers_list: dict = {}
         self.current_best: tuple = None
-        self.time = stime
+        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.clientSocket.connect((address, 10000)) # connect to rendezvous
+        self.client_socket.connect((address, 10000)) # connect to rendezvous
+        self.client_socket.sendall(b'\x10') # send byte to distinguish between client and vpn server
         window.textbox.insert(tk.END, f"Bootstrap - Connected to Rendezvous Server\n")
-        self.clientSocket.sendall(b'\x10') # send byte to distinguish between client and vpn server
 
-        data = self.clientSocket.recv(1024)
-        # If the first recv is a peer update, wait for the second recv
-        if data[0:1] == b'\x11':
-            data = self.clientSocket.recv(1024)
+        data = self.client_socket.recv(1024)
+        if data[0:1] == b'\x11': # If the first recv is a peer update, wait for the second recv
+            data = self.client_socket.recv(1024)
 
-        self.servers_list = eval(data.decode('utf-8'))
+        self.servers_list = eval(data.decode('utf-8')) # Convert the string peer data to a dictionary
         self.current_best = self.determine_best_server()
-        window.textbox.insert(tk.END, f"Bootstrap - Received Initial Peer List. Disconnecting From Rendezvous\n")
-        self.clientSocket.close()
+        self.client_socket.close()
+        window.textbox.insert(tk.END, f"Bootstrap - Received Initial Peer List. Disconnected From Rendezvous\n")
         
         while True:
             vpn_server_addr = (self.current_best[0][0], self.current_best[1][0])
@@ -39,23 +39,21 @@ class Client:
 
             if option == 0:
                 while True:
-                    time.sleep(self.time)
+                    time.sleep(self.time_interval)
                     vpn_socket.sendall(b'\x10')
                     data = vpn_socket.recv(1024)
                     self.servers_list = eval(data.decode('utf-8'))
                     self.current_best = self.determine_best_server()
                     best_server_addr = (self.current_best[0][0], self.current_best[1][0])
                     if best_server_addr == vpn_socket.getpeername():
-                        print("Best Server is the Current Server...")
                         window.textbox.insert(tk.END, f"Best Server is the Current Server...\n")
                     else:
-                        print("Changing Servers...")
                         window.textbox.insert(tk.END, f"Changing Servers...\n")
                         break
 
             if option == 1:
                 while True:
-                    time.sleep(self.time) # request updated servers list every 10 seconds
+                    time.sleep(self.time_interval) # request updated servers list every 10 seconds
                     vpn_socket.sendall(b'\x10')
                     data = vpn_socket.recv(1024)
                     self.servers_list = eval(data.decode('utf-8'))
@@ -66,7 +64,6 @@ class Client:
                         best_server_addr = (key[0], value[0])
 
                         if best_server_addr != vpn_socket.getpeername():
-                            # print("Randomly Selected a New Server...")
                             window.textbox.insert(tk.END, f"Selecting a Random VPN Server...\n")
                             break
                     break
@@ -75,10 +72,9 @@ class Client:
     def determine_best_server(self) -> tuple[str, list]:
         best_option = None
         for key, value in self.servers_list.items():
-            if not best_option:
+            if not best_option or best_option[1][1] > value[1]:
                 best_option = (key, value)
-            elif best_option[1][1] > value[1]:
-                best_option = (key, value)
+
         return best_option
 
 
@@ -221,11 +217,11 @@ class App(tk.Tk):
         client_thread.start()
 
 
-def low_conn_client(window: tk.Tk, stime: int):
-    Client('127.0.0.1', window, 0, stime)
+def low_conn_client(window: tk.Tk, time_interval: int):
+    Client('127.0.0.1', window, 0, time_interval)
 
-def random_client(window: tk.Tk, stime: int):
-    Client('127.0.0.1', window, 1, stime)
+def random_client(window: tk.Tk, time_interval: int):
+    Client('127.0.0.1', window, 1, time_interval)
 
 if __name__ == "__main__":
     app = App()
