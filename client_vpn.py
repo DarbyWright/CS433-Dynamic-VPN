@@ -103,14 +103,7 @@ class App(tk.Tk):
         self.textbox = tk.Text(
             self,
             wrap="word")
-        # self.textbox.grid(
-        #     row=0,
-        #     column=0,
-        #     columnspan=2,
-        #     padx=10,
-        #     pady=10,
-        #     sticky="news")
-        
+
         self.config_frame = tk.Frame(self)
         self.config_frame.grid(
             row=0,
@@ -120,16 +113,34 @@ class App(tk.Tk):
             sticky="news")
         self.config_frame.grid_columnconfigure((0, 1, 2), weight=1)
 
-        self.time_var = tk.IntVar(self)
-        self.time_entry = tk.Entry(
-            self.config_frame,
-            width=10,
-            textvariable=self.time_var)
-        self.time_entry.grid(
+        self.entry_frame = tk.Frame(self.config_frame)
+        self.entry_frame.grid(
             row=0,
             column=0,
             padx=10,
             pady=10)
+        self.entry_frame.grid_rowconfigure((0, 1), weight=1)
+
+        self.entry_label = tk.Label(
+            self.entry_frame,
+            text="Seconds")
+        self.entry_label.grid(
+            row=0,
+            column=0,
+            padx=10,
+            pady=2)
+
+        self.time_var = tk.IntVar(self)
+        self.time_var.set(10)
+        self.time_entry = tk.Entry(
+            self.entry_frame,
+            width=10,
+            textvariable=self.time_var)
+        self.time_entry.grid(
+            row=1,
+            column=0,
+            padx=10,
+            pady=2)
 
         self.low_connections_button = tk.Button(
             self.config_frame,
@@ -151,15 +162,6 @@ class App(tk.Tk):
             padx=10,
             pady=10)
         
-        # self.reset_button = tk.Button(
-        #     self,
-        #     text="Reset",
-        #     command=self.reset_pressed)
-        # self.reset_button.grid(
-        #     row=1,
-        #     column=2,
-        #     padx=10,
-        #     pady=10)
 
     def low_connections_pressed(self):
         try:
@@ -172,7 +174,7 @@ class App(tk.Tk):
         self.config_frame.grid_forget()
         self.label = tk.Label(
             self,
-            text=f"Switching Servers Every {switch_time} Seconds")
+            text=f"Checking For Better Servers Every {switch_time} Seconds")
         self.label.grid(
             row=0,
             column=0,
@@ -206,8 +208,7 @@ class App(tk.Tk):
             column=0,
             padx=10,
             pady=10,
-            sticky="news"
-        )
+            sticky="news")
 
         self.textbox.grid(
             row=1,
@@ -219,18 +220,13 @@ class App(tk.Tk):
         client_thread = threading.Thread(target=random_client, args=(self, switch_time))
         client_thread.start()
 
-    def reset_pressed(self):
-        print("Reset Pressed")
-        HALT = True
-
 
 def low_conn_client(window: tk.Tk, stime: int):
-    client = Client('127.0.0.1', window, 0, stime)
+    Client('127.0.0.1', window, 0, stime)
 
 def random_client(window: tk.Tk, stime: int):
-    client = Client('127.0.0.1', window, 1, stime)
+    Client('127.0.0.1', window, 1, stime)
 
 if __name__ == "__main__":
-    # main()
     app = App()
     app.mainloop()
