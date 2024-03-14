@@ -6,13 +6,14 @@ import tkinter as tk
 
 
 class Client:
-    def __init__(self, address: str, window: tk.Tk, option: int):
+    def __init__(self, address: str, window: tk.Tk, option: int, stime: int):
         if option == 0:
             window.textbox.insert(tk.END, f"Selected Low Connection Mode - Updates every 10 seconds\n")
         elif option == 1:
             window.textbox.insert(tk.END, f"Selected Random Mode - Updates every 10 seconds\n")
         self.servers_list: dict = {}
         self.current_best: tuple = None
+        self.time = stime
 
         self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.clientSocket.connect((address, 10000)) # connect to rendezvous
@@ -38,7 +39,7 @@ class Client:
 
             if option == 0:
                 while True:
-                    time.sleep(10)
+                    time.sleep(self.time)
                     vpn_socket.sendall(b'\x10')
                     data = vpn_socket.recv(1024)
                     self.servers_list = eval(data.decode('utf-8'))
@@ -54,7 +55,7 @@ class Client:
 
             if option == 1:
                 while True:
-                    time.sleep(10) # request updated servers list every 10 seconds
+                    time.sleep(self.time) # request updated servers list every 10 seconds
                     vpn_socket.sendall(b'\x10')
                     data = vpn_socket.recv(1024)
                     self.servers_list = eval(data.decode('utf-8'))
@@ -96,37 +97,57 @@ class App(tk.Tk):
         self.geometry(f"{600}x{500}")
 
         # Give weight to window container - allows for better window size adjustment
-        self.grid_columnconfigure((0, 1), weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
 
         self.textbox = tk.Text(
             self,
             wrap="word")
-        self.textbox.grid(
+        # self.textbox.grid(
+        #     row=0,
+        #     column=0,
+        #     columnspan=2,
+        #     padx=10,
+        #     pady=10,
+        #     sticky="news")
+        
+        self.config_frame = tk.Frame(self)
+        self.config_frame.grid(
             row=0,
             column=0,
-            columnspan=2,
             padx=10,
             pady=10,
             sticky="news")
+        self.config_frame.grid_columnconfigure((0, 1, 2), weight=1)
 
-        self.low_connections_button = tk.Button(
-            self,
-            text="Low Connections",
-            command=self.low_connections_pressed)
-        self.low_connections_button.grid(
-            row=1,
+        self.time_var = tk.IntVar(self)
+        self.time_entry = tk.Entry(
+            self.config_frame,
+            width=10,
+            textvariable=self.time_var)
+        self.time_entry.grid(
+            row=0,
             column=0,
             padx=10,
             pady=10)
 
+        self.low_connections_button = tk.Button(
+            self.config_frame,
+            text="Low Connections",
+            command=self.low_connections_pressed)
+        self.low_connections_button.grid(
+            row=0,
+            column=1,
+            padx=10,
+            pady=10)
+
         self.random_button = tk.Button(
-            self,
+            self.config_frame,
             text="Random Server",
             command=self.random_pressed)
         self.random_button.grid(
-            row=1,
-            column=1,
+            row=0,
+            column=2,
             padx=10,
             pady=10)
         
@@ -141,11 +162,61 @@ class App(tk.Tk):
         #     pady=10)
 
     def low_connections_pressed(self):
-        self.client_thread = threading.Thread(target=low_conn_client, args=(self,))
+        try:
+            switch_time = int(self.time_var.get())
+            print(time)
+        except:
+            print("Invalid Time Entry")
+            return
+        
+        self.config_frame.grid_forget()
+        self.label = tk.Label(
+            self,
+            text=f"Switching Servers Every {switch_time} Seconds")
+        self.label.grid(
+            row=0,
+            column=0,
+            padx=10,
+            pady=10)
+
+        self.textbox.grid(
+            row=1,
+            column=0,
+            padx=10,
+            pady=10,
+            sticky="news")
+        
+        self.client_thread = threading.Thread(target=low_conn_client, args=(self, switch_time))
         self.client_thread.start()
 
     def random_pressed(self):
-        client_thread = threading.Thread(target=random_client, args=(self,))
+        try:
+            switch_time = int(self.time_var.get())
+            print(time)
+        except:
+            print("Invalid Time Entry")
+            return
+        
+        self.config_frame.grid_forget()
+        self.label = tk.Label(
+            self,
+            text=f"Switching Servers Every {switch_time} Seconds")
+        self.label.grid(
+            row=0,
+            column=0,
+            padx=10,
+            pady=10,
+            sticky="news"
+        )
+
+        self.textbox.grid(
+            row=1,
+            column=0,
+            padx=10,
+            pady=10,
+            sticky="news")
+        
+        client_thread = threading.Thread(target=random_client, args=(self, switch_time))
         client_thread.start()
 
     def reset_pressed(self):
@@ -153,11 +224,11 @@ class App(tk.Tk):
         HALT = True
 
 
-def low_conn_client(window: tk.Tk):
-    client = Client('127.0.0.1', window, 0)
+def low_conn_client(window: tk.Tk, stime: int):
+    client = Client('127.0.0.1', window, 0, stime)
 
-def random_client(window: tk.Tk):
-    client = Client('127.0.0.1', window, 1)
+def random_client(window: tk.Tk, stime: int):
+    client = Client('127.0.0.1', window, 1, stime)
 
 if __name__ == "__main__":
     # main()
