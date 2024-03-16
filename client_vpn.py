@@ -68,7 +68,6 @@ class Client:
                             break
                     break
 
-    
     def determine_best_server(self) -> tuple[str, list]:
         best_option = None
         for key, value in self.servers_list.items():
@@ -85,7 +84,6 @@ class Servers:
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        global HALT
         self.client_thread = None
 
         # Configure window
