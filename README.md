@@ -1,4 +1,6 @@
 # CS433-Dynamic-VPN
+A system to simpulate a peer to peer network of vpn servers, and a client to switch between the various servers in the network.
+
 Python 3.10 or higher required
 
 Library Dependecies:
