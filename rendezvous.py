@@ -5,6 +5,7 @@ by Darby Wright and Felix Golledge-Ostemeir
 Rendezvous Server - Connect VPN Server peers
 
 Inspired and adapted from https://github.com/AvinashAgarwal14/chatroom-p2p/blob/master/chat.py
+JSON file use inspired and adapted from https://stackoverflow.com/questions/63113747/python-is-there-a-way-to-permanently-change-a-variable-from-another-python-file
 """
 
 import socket
